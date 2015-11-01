@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<android.support.v7.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:card_view="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/card_view"
+    android:layout_gravity="center"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+    card_view:cardCornerRadius="4dp" >
+
+
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        >
+        <ch.dominikroos.soundslasher.CircledPicker
+            xmlns:app="http://schemas.android.com/apk/res/ch.dominikroos.soundslasher"
+            android:id="@+id/circled_picker"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="10dp"
+            app:pickerMode="minutes"
+            app:thicknessC="5dp"
+            app:maxValue="3600"
+            app:value="300"
+            app:step="60"
+            >
+        </ch.dominikroos.soundslasher.CircledPicker>
+
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            >
+
+
+            <Button
+                android:text="Slash Sound"
+                android:id="@+id/start_slash_button"
+                android:layout_height="wrap_content"
+                android:layout_width="wrap_content"
+
+                />
+            <Button
+                android:text="Cancle Slash"
+                android:id="@+id/cancle_slash_button"
+                android:layout_height="wrap_content"
+                android:layout_width="wrap_content"/>
+        </LinearLayout>
+    </LinearLayout>
+
+</android.support.v7.widget.CardView>
