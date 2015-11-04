@@ -8,22 +8,27 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.media.AudioManager;
+import android.nfc.Tag;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.CardView;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.RecyclerView.OnScrollListener;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.LinearLayout;
 
 import java.util.ArrayList;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity{
 
 
     private static final int ALARM_REQUEST_CODE = 0;
@@ -31,10 +36,12 @@ public class MainActivity extends AppCompatActivity {
     private static final String ALARM_TIME = "ALARM_TIME";
     private static final String ALARM_SET = "ALARM_SET";
     private static final String DEFAULT_VALUE = "DEFAULT_VALUE";
+    private static final String TAG = "MAIN_ACTIVITY";
     private BroadcastReceiver mBroadcastReceiver;
     private AudioManager mAudioManager;
     private AlarmManager mAlarmManager;
     private CircledPicker mCircledPicker;
+    private CardView mCircledPickerCard;
     private long mAlarmTime;
     private boolean mAlarmSet = false;
     private SharedPreferences mSharedPreferences;
@@ -43,6 +50,8 @@ public class MainActivity extends AppCompatActivity {
     private LinearLayoutManager mLayoutManager;
     private TimeListAdapter mAdapter;
     private ArrayList<Float> mDataset;
+
+    private int mInitialCardSize;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,10 +62,14 @@ public class MainActivity extends AppCompatActivity {
 
         mSharedPreferences = getPreferences(Context.MODE_PRIVATE);
 
+        mCircledPicker = (CircledPicker)findViewById(R.id.circled_picker);
+        mCircledPickerCard = (CardView)findViewById(R.id.card_view);
+        mInitialCardSize = mCircledPickerCard.getHeight();
+
         mAudioManager = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
         mAlarmManager = (AlarmManager)getSystemService(Context.ALARM_SERVICE);
         mBroadcastReceiver = getBroadcastReceiver();
-        registerReceiver(mBroadcastReceiver, new IntentFilter("ch.oncilla.soundslasher"));
+        registerReceiver(mBroadcastReceiver, new IntentFilter("ch.dominikroos.soundslasher"));
 
         mRecyclerView = (RecyclerView) findViewById(R.id.my_recycler_view);
 
@@ -71,10 +84,23 @@ public class MainActivity extends AppCompatActivity {
         // specify an adapter (see also next example)
         mDataset = new ArrayList<>();
         mDataset.add(700f);
+        mDataset.add(700f);
+        mDataset.add(700f);
         mAdapter = new TimeListAdapter(mDataset,this);
         mRecyclerView.setAdapter(mAdapter);
 
+        mRecyclerView.addOnScrollListener(new OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
+                super.onScrollStateChanged(recyclerView, newState);
+                int scrollOffset;
+                if((scrollOffset = recyclerView.computeVerticalScrollOffset()) > 50){
+                    mCircledPickerCard.setLayoutParams(new LinearLayout.LayoutParams(200, (int) (mInitialCardSize * ((Math.max(1000 - scrollOffset, 500) / (float) 1000)))));
+                    Log.i(TAG,"Scrolloffset: "+scrollOffset);
+                }
 
+            }
+        });
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -163,14 +189,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void cancelAlarm(){
-        PendingIntent pi = PendingIntent.getBroadcast(this, ALARM_REQUEST_CODE, new Intent("ch.oncilla.soundslasher"), PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent pi = PendingIntent.getBroadcast(this, ALARM_REQUEST_CODE, new Intent("ch.dominikroos.soundslasher"), PendingIntent.FLAG_UPDATE_CURRENT);
         mAlarmManager.cancel(pi);
         mCircledPicker.stop();
         mAlarmSet = false;
     }
 
     private void setAlarm (long ms){
-        PendingIntent pi = PendingIntent.getBroadcast(this, ALARM_REQUEST_CODE, new Intent("ch.oncilla.soundslasher"), PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent pi = PendingIntent.getBroadcast(this, ALARM_REQUEST_CODE, new Intent("ch.dominikroos.soundslasher"), PendingIntent.FLAG_UPDATE_CURRENT);
 
         if (Build.VERSION.SDK_INT<Build.VERSION_CODES.KITKAT) {
             mAlarmManager.set(AlarmManager.RTC_WAKEUP, ms, pi);

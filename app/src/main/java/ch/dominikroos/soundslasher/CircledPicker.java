@@ -19,12 +19,10 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.os.Build;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.animation.DecelerateInterpolator;
-import android.widget.Toast;
 
 public class CircledPicker extends View implements Runnable {
     static public boolean isAPI10 = Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB;
@@ -97,16 +95,15 @@ public class CircledPicker extends View implements Runnable {
     }
 
     public static enum PickerMode {
-        HOURS_AND_SECONDS,
         MINUTES_AND_SECONDS,
-        TIME_OF_DAY,
+        HOURS_AND_MINUTES,
         PERCENT,
         NUMERIC
     }
 
     public CircledPicker(Context context) {
         super(context);
-        init(context,null);
+        init(context, null);
     }
 
     public CircledPicker(Context context, AttributeSet attrs) {
@@ -232,10 +229,6 @@ public class CircledPicker extends View implements Runnable {
         mCurrentSweep = ((value * 360) / mMaxValue);
     }
 
-    private String addAZeroIfNeeds(int value) {
-        return value > 9 ? value + "" : "0" + value;
-    }
-
     private void animateChange(float finalAngle) {
         if(!isAPI10) {
             if(mAngleAnimator.isRunning()) {
@@ -293,11 +286,11 @@ public class CircledPicker extends View implements Runnable {
         mPaint.setColor(getResources().getColor(R.color.colorAccent));
 
         switch (mPickerMode) {
-            case TIME_OF_DAY:
-                centerLabel = getHoursString() + ":" + getMinutesString();
+            case MINUTES_AND_SECONDS:
+                centerLabel = CircledPickerUtils.getMinuesAndSecondsString(getValue());
                 break;
-            case HOURS_AND_SECONDS:
-                centerLabel = getHoursString() + "h " + getMinutesString() + "m";
+            case HOURS_AND_MINUTES:
+                centerLabel = CircledPickerUtils.getHourAndMinutesString(getValue());
                 break;
             case PERCENT:
                 centerLabel = getPercentString();
@@ -368,17 +361,6 @@ public class CircledPicker extends View implements Runnable {
         canvas.drawPath(mPath, mPaint);
     }
 
-    private String getMinutesString() {
-        int hour = (int) (getValue() / 60);
-        int minutes = (int) Math.ceil(getValue() - (hour * 60));
-        return addAZeroIfNeeds(minutes==60?0:minutes);
-    }
-
-    private String getHoursString() {
-        int hour = (int) (getValue() / 60);
-        return addAZeroIfNeeds(hour);
-    }
-
     private void init(Context context, AttributeSet attrs) {
         TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.CircledPicker);
         ViewConfiguration viewConfiguration = ViewConfiguration.get(context);
@@ -388,14 +370,14 @@ public class CircledPicker extends View implements Runnable {
         mMaxValue = typedArray.getInteger(R.styleable.CircledPicker_maxValue, 100);
         mTextSize = typedArray.getDimensionPixelSize(R.styleable.CircledPicker_textSize, 0);
         mThickness = typedArray.getDimensionPixelSize(R.styleable.CircledPicker_thicknessC,
-                (int) MeasureUtils.convertDpToPixel(context, 5));
+                (int) CircledPickerUtils.convertDpToPixel(context, 5));
         mInnerThickness = mThickness - typedArray.getDimensionPixelSize(R.styleable.CircledPicker_innerThickness,
-                (int) MeasureUtils.convertDpToPixel(context, 1));
+                (int) CircledPickerUtils.convertDpToPixel(context, 1));
         pickerMode = typedArray.getString(R.styleable.CircledPicker_pickerMode);
 
         if(pickerMode != null) {
-            mPickerMode = pickerMode.equalsIgnoreCase("hours") ? PickerMode.HOURS_AND_SECONDS :
-                    pickerMode.equalsIgnoreCase("minutes") ? PickerMode.TIME_OF_DAY :
+            mPickerMode = pickerMode.equalsIgnoreCase("hours") ? PickerMode.HOURS_AND_MINUTES :
+                    pickerMode.equalsIgnoreCase("minutes") ? PickerMode.MINUTES_AND_SECONDS :
                             pickerMode.equalsIgnoreCase("numeric") ? PickerMode.NUMERIC :
                                     PickerMode.PERCENT;
         } else {
