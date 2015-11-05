@@ -11,6 +11,7 @@ import android.media.AudioManager;
 import android.nfc.Tag;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.ContactsContract;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v4.content.ContextCompat;
@@ -19,12 +20,14 @@ import android.support.v7.widget.CardView;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.support.v7.widget.helper.ItemTouchHelper;
 import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 
 import com.google.gson.Gson;
 
@@ -61,6 +64,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private FloatingActionButton mFloatingActionButton;
     private int mCircledPickerCardHeight = -1;
     private float mOldCircularPickerValue = -1;
+    private RelativeLayout mRelativeLayout;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,9 +78,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mCircledPicker = (CircledPicker)findViewById(R.id.circled_picker);
         mCircledPickerCard = (CardView)findViewById(R.id.card_view);
         mInitialCardSize = mCircledPickerCard.getHeight();
+        mRelativeLayout = (RelativeLayout)findViewById(R.id.content_view_relative_layout);
 
         mAlarmManager = (AlarmManager)getSystemService(Context.ALARM_SERVICE);
 
+        setUpRecyclerView();
+
+        mFloatingActionButton = (FloatingActionButton) findViewById(R.id.fab);
+        mFloatingActionButton.setOnClickListener(this);
+    }
+
+    private void setUpRecyclerView() {
         mRecyclerView = (RecyclerView) findViewById(R.id.my_recycler_view);
 
         // use this setting to improve performance if you know that changes
@@ -97,22 +109,34 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             protected void onMoved(int height, int offset) {
                 Log.i(TAG, height + "");
                 if (isActive) {
-                    FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) mCircledPickerCard.getLayoutParams();
+                    RelativeLayout.LayoutParams layoutParams = (RelativeLayout.LayoutParams) mCircledPickerCard.getLayoutParams();
                     layoutParams.height = height;
                     mCircledPickerCard.setLayoutParams(layoutParams);
                     mCircledPickerCard.setCardElevation(12 * (Math.min(1, offset / (float) layoutParams.leftMargin)) + 6);
                     mDataset.get(0).mOffset = height;
                     mAdapter.notifyDataSetChanged();
-
                 }
+                mRelativeLayout.bringChildToFront(mCircledPickerCard);
+                mRelativeLayout.invalidate();
+
             }
 
         });
 
-        mFloatingActionButton = (FloatingActionButton) findViewById(R.id.fab);
-        mFloatingActionButton.setOnClickListener(this);
-    }
+        ItemTouchHelper.SimpleCallback simpleItemTouchCallback = new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
+            @Override
+            public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
+                return false;
+            }
 
+            @Override
+            public void onSwiped(RecyclerView.ViewHolder viewHolder, int swipeDir) {
+                removeElementFromDataset(mRecyclerView.getChildAdapterPosition(((TimeListAdapter.ViewHolder) viewHolder).mCardView));
+            }
+        };
+        ItemTouchHelper itemTouchHelper = new ItemTouchHelper(simpleItemTouchCallback);
+        itemTouchHelper.attachToRecyclerView(mRecyclerView);
+    }
 
 
     @Override
@@ -198,24 +222,26 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
             mCircledPicker.start(mAlarmTime);
             setmAlarmSet(true);
+            Log.i(TAG,value+"");
             if(!increaseDataSetCounter(value))
-                Snackbar.make(mCircledPickerCard, getResources().getString(R.string.message_start_alarm), Snackbar.LENGTH_SHORT).
+                Snackbar.make(mCircledPickerCard, getResources().getString(R.string.message_start_alarm), Snackbar.LENGTH_LONG).
                         setAction(getResources().getString(R.string.message_start_alarm_action), new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
-                                mDataset.add(new DataPair(value,1));
+                                addElementToDataset(new DataPair(value,1));
+                                Log.i(TAG, value + "");
                             }
                         })
                         .show();
             }
-            Collections.sort(mDataset);
-            mAdapter.notifyDataSetChanged();
         }
 
     private boolean increaseDataSetCounter(float value) {
         for(int i = 0; i < mDataset.size(); i++){
             if(mDataset.get(i).mTime == value){
                 mDataset.get(i).mCounter++;
+                sortDataset(mDataset);
+                mAdapter.notifyDataSetChanged();
                 return true;
             }
         }
@@ -257,8 +283,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     public void setCircledPickerValue(float mTime) {
-        mCircledPicker.setValue(mTime);
-        mCircledPicker.invalidate();
+        if(!mAlarmSet){
+            mCircledPicker.setValue(mTime);
+            mCircledPicker.invalidate();
+        }
     }
 
     public class DataPair implements Comparable<DataPair>{
@@ -270,6 +298,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             this.mTime = mTime;
             this.mCounter = mCounter;
         }
+        public DataPair(){mTime = -1;}
 
         @Override
         public int compareTo(DataPair rhs) {
@@ -284,11 +313,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if(!json.equals("null")){
             Gson gson = new Gson();
             dataPairs = new ArrayList<>(Arrays.asList(gson.fromJson(json, DataPair[].class)));
-            Collections.sort(dataPairs);
+            sortDataset(dataPairs);
         }else{
-            return  new ArrayList<>();
+            dataPairs = new ArrayList<>();
+            dataPairs.add(new DataPair());
+            dataPairs.add(new DataPair(120,1));
+            dataPairs.add(new DataPair(300,1));
+            dataPairs.add(new DataPair(600,1));
         }
         return dataPairs;
+    }
+
+    private void sortDataset(ArrayList<DataPair> dataPairs) {
+        DataPair dataPair = dataPairs.remove(0);
+        Collections.sort(dataPairs);
+        dataPairs.add(0,dataPair);
     }
 
     private void saveDataSetToSharedPreferences(){
@@ -301,5 +340,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         editor.putString(DATA_PAIRS, json);
         editor.commit();
     }
+
+
+    private void removeElementFromDataset(int position) {
+        mDataset.remove(position);
+        mAdapter.notifyItemRemoved(position);
+    }
+
+    private void addElementToDataset(DataPair dataPair) {
+        mDataset.add(dataPair);
+        mAdapter.notifyItemInserted(mDataset.size()-1);
+    }
+
 
 }

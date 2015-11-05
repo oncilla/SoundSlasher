@@ -87,10 +87,11 @@ public class TimeListAdapter extends RecyclerView.Adapter<TimeListAdapter.ViewHo
             params.height = (int)(mDataset.get(0).mOffset + 2*Util.pxFromDp(mMainActivity, 8));
             holder.mView.setLayoutParams(params);
         }else if(getItemViewType(position)==VIEW_TYPE_TIME_VIEW){
-            holder.mTextView.setText(CircledPickerUtils.getMinuesAndSecondsString(mDataset.get(position-1).mTime));
+            holder.mTextView.setText(CircledPickerUtils.getMinuesAndSecondsString(mDataset.get(position).mTime));
             holder.mTextView.invalidate();
         }
     }
+
 
     // Return the size of your dataset (invoked by the layout manager)
     @Override
@@ -101,7 +102,7 @@ public class TimeListAdapter extends RecyclerView.Adapter<TimeListAdapter.ViewHo
     @Override
     public void onClick(View v) {
         int position = mRecyclerView.getChildAdapterPosition(v);
-        mMainActivity.setCircledPickerValue(mDataset.get(position-1).mTime);
+        mMainActivity.setCircledPickerValue(mDataset.get(position).mTime);
     }
 
 }
