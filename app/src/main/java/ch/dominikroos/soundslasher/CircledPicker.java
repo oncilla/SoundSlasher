@@ -19,6 +19,7 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.os.Build;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
@@ -77,13 +78,14 @@ public class CircledPicker extends View implements Runnable {
     @Override
     public void run() {
         try {
-            while (!isInterrupted) {
+            while (!isInterrupted && mCurrentValue >= 0) {
                 ((Activity)getContext()).runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         float value = (float)((mAlarmTime - System.currentTimeMillis())/1000);
                         setValue(value);
                         invalidate();
+                        Log.i(TAG, "Thread is still running");
                     }
                 });
 
@@ -225,7 +227,7 @@ public class CircledPicker extends View implements Runnable {
     }
 
     public void setValue(float value) {
-        mCurrentValue = value;
+        mCurrentValue = (value > 0)?value:0;
         mCurrentSweep = ((value * 360) / mMaxValue);
     }
 

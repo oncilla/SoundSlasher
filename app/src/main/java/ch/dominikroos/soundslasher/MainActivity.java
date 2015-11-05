@@ -11,14 +11,13 @@ import android.media.AudioManager;
 import android.nfc.Tag;
 import android.os.Build;
 import android.os.Bundle;
-import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.RecyclerView.OnScrollListener;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
@@ -26,9 +25,14 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.LinearLayout;
 
-import java.util.ArrayList;
+import com.google.gson.Gson;
 
-public class MainActivity extends AppCompatActivity{
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+
+public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
 
     private static final int ALARM_REQUEST_CODE = 0;
@@ -37,8 +41,7 @@ public class MainActivity extends AppCompatActivity{
     private static final String ALARM_SET = "ALARM_SET";
     private static final String DEFAULT_VALUE = "DEFAULT_VALUE";
     private static final String TAG = "MAIN_ACTIVITY";
-    private BroadcastReceiver mBroadcastReceiver;
-    private AudioManager mAudioManager;
+    private static final String DATA_PAIRS = "DATA_PAIRS";
     private AlarmManager mAlarmManager;
     private CircledPicker mCircledPicker;
     private CardView mCircledPickerCard;
@@ -49,9 +52,13 @@ public class MainActivity extends AppCompatActivity{
     private RecyclerView mRecyclerView;
     private LinearLayoutManager mLayoutManager;
     private TimeListAdapter mAdapter;
-    private ArrayList<Float> mDataset;
+    private ArrayList<DataPair> mDataset;
 
     private int mInitialCardSize;
+    private ShrinkScrollListener mOnScrollListener;
+    private FloatingActionButton mFloatingActionButton;
+    private int mCircledPickerCardHeight = -1;
+    private float mOldCircularPickerValue = -1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,10 +73,7 @@ public class MainActivity extends AppCompatActivity{
         mCircledPickerCard = (CardView)findViewById(R.id.card_view);
         mInitialCardSize = mCircledPickerCard.getHeight();
 
-        mAudioManager = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
         mAlarmManager = (AlarmManager)getSystemService(Context.ALARM_SERVICE);
-        mBroadcastReceiver = getBroadcastReceiver();
-        registerReceiver(mBroadcastReceiver, new IntentFilter("ch.dominikroos.soundslasher"));
 
         mRecyclerView = (RecyclerView) findViewById(R.id.my_recycler_view);
 
@@ -82,72 +86,71 @@ public class MainActivity extends AppCompatActivity{
         mRecyclerView.setLayoutManager(mLayoutManager);
 
         // specify an adapter (see also next example)
-        mDataset = new ArrayList<>();
-        mDataset.add(700f);
-        mDataset.add(700f);
-        mDataset.add(700f);
+        mDataset = createDataSetFromSharedPreferences();
         mAdapter = new TimeListAdapter(mDataset,this);
         mRecyclerView.setAdapter(mAdapter);
 
-        mRecyclerView.addOnScrollListener(new OnScrollListener() {
+        mRecyclerView.addOnScrollListener(mOnScrollListener = new ShrinkScrollListener() {
             @Override
-            public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
-                super.onScrollStateChanged(recyclerView, newState);
-                int scrollOffset;
-                if((scrollOffset = recyclerView.computeVerticalScrollOffset()) > 50){
-                    mCircledPickerCard.setLayoutParams(new LinearLayout.LayoutParams(200, (int) (mInitialCardSize * ((Math.max(1000 - scrollOffset, 500) / (float) 1000)))));
-                    Log.i(TAG,"Scrolloffset: "+scrollOffset);
+            protected void onMoved(int height, int offset) {
+                Log.i(TAG, height + "");
+                if (isActive) {
+                    LinearLayout.LayoutParams layoutParams = (LinearLayout.LayoutParams) mCircledPickerCard.getLayoutParams();
+                    layoutParams.height = height;
+                    mCircledPickerCard.setLayoutParams(layoutParams);
+                    mCircledPickerCard.setCardElevation(12 * (Math.min(1, offset / (float) layoutParams.leftMargin)) + 6);
+
                 }
-
             }
+
         });
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });
+        mFloatingActionButton = (FloatingActionButton) findViewById(R.id.fab);
+        mFloatingActionButton.setOnClickListener(this);
     }
+
+
 
     @Override
     protected void onResume() {
         super.onResume();
 
-        mAlarmTime = mSharedPreferences.getLong(ALARM_TIME,-1);
-        mAlarmSet = mSharedPreferences.getBoolean(ALARM_SET,false);
-        if(mAlarmSet && mAlarmTime > System.currentTimeMillis()){
-            float timeToAlarm = (float)(mAlarmTime - System.currentTimeMillis())/1000;
-            mDataset.set(0,timeToAlarm);
-            mAdapter.notifyDataSetChanged();
-
+        mAlarmTime = mSharedPreferences.getLong(ALARM_TIME, -1);
+        mAlarmSet = mSharedPreferences.getBoolean(ALARM_SET, false);
+        if (mAlarmSet && mAlarmTime > System.currentTimeMillis()) {
+            float timeToAlarm = (float) (mAlarmTime - System.currentTimeMillis()) / 1000;
+            mCircledPicker.setValue(timeToAlarm);
+            mCircledPicker.start(mAlarmTime);
+            setmAlarmSet(true);
+        }else if(mOldCircularPickerValue > -0.5){
+            mCircledPicker.setValue(mOldCircularPickerValue);
+            setmAlarmSet(false);
         }else{
-            mAlarmSet = false;
-            mDataset.set(0, 700f);
-            mAdapter.notifyDataSetChanged();
+            setmAlarmSet(false);
         }
+
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if(mCircledPickerCardHeight == -1)
+            mCircledPickerCardHeight = mCircledPickerCard.getHeight();
+        mOnScrollListener.setmCircledPickerHeight(mCircledPickerCardHeight);
+        mOnScrollListener.setIsActive(true);
     }
 
     @Override
     public void onPause(){
         super.onPause();
         mCircledPicker.stop();
-        SharedPreferences.Editor editor = mSharedPreferences.edit();
-        if(mAlarmSet){
-            editor.putLong(ALARM_TIME, mAlarmTime);
-        }else{
-            editor.remove(ALARM_TIME);
-        }
-        editor.putBoolean(ALARM_SET,mAlarmSet);
-        editor.commit();
+        mOnScrollListener.setIsActive(false);
+        saveDataSetToSharedPreferences();
 
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
     }
@@ -167,100 +170,116 @@ public class MainActivity extends AppCompatActivity{
         return super.onOptionsItemSelected(item);
     }
 
-    public void setCircledPicker(CircledPicker circledPicker){
-        mCircledPicker = circledPicker;
-
-        mAlarmTime = mSharedPreferences.getLong(ALARM_TIME,-1);
-        mAlarmSet = mSharedPreferences.getBoolean(ALARM_SET,false);
-        if(mAlarmSet && mAlarmTime > System.currentTimeMillis()){
-            float timeToAlarm = (float)(mAlarmTime - System.currentTimeMillis())/1000;
-            mCircledPicker.setValue(timeToAlarm);
-            mCircledPicker.start(mAlarmTime);
-        }
-    }
-
     public void setAlarm(){
 
         if(!mAlarmSet){
-            mAlarmTime = ((long)mCircledPicker.getValue()) * SECONDS_TO_MILLIS + System.currentTimeMillis();
-            setAlarm(mAlarmTime);
+            final float value = mCircledPicker.getValue();
+            mAlarmTime = ((long)value) * SECONDS_TO_MILLIS + System.currentTimeMillis();
+            PendingIntent service = PendingIntent.getService(this, ALARM_REQUEST_CODE, new Intent(this,SlashSoundService.class), PendingIntent.FLAG_UPDATE_CURRENT)
+;
+            if (Build.VERSION.SDK_INT<Build.VERSION_CODES.KITKAT) {
+                mAlarmManager.set(AlarmManager.RTC_WAKEUP, mAlarmTime, service);
+            } else {
+                mAlarmManager.setExact(AlarmManager.RTC_WAKEUP, mAlarmTime, service);
+            }
             mCircledPicker.start(mAlarmTime);
+            setmAlarmSet(true);
+            if(!increaseDataSetCounter(value))
+                Snackbar.make(mCircledPickerCard, getResources().getString(R.string.message_start_alarm), Snackbar.LENGTH_SHORT).
+                        setAction(getResources().getString(R.string.message_start_alarm_action), new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                mDataset.add(new DataPair(value,1));
+                            }
+                        })
+                        .show();
+            }
+            Collections.sort(mDataset);
+            mAdapter.notifyDataSetChanged();
         }
+
+    private boolean increaseDataSetCounter(float value) {
+        for(int i = 0; i < mDataset.size(); i++){
+            if(mDataset.get(i).mTime == value){
+                mDataset.get(i).mCounter++;
+                return true;
+            }
+        }
+        return false;
     }
 
     public void cancelAlarm(){
-        PendingIntent pi = PendingIntent.getBroadcast(this, ALARM_REQUEST_CODE, new Intent("ch.dominikroos.soundslasher"), PendingIntent.FLAG_UPDATE_CURRENT);
-        mAlarmManager.cancel(pi);
+        PendingIntent service = PendingIntent.getService(this, ALARM_REQUEST_CODE, new Intent(this, SlashSoundService.class), PendingIntent.FLAG_UPDATE_CURRENT);
+        mAlarmManager.cancel(service);
         mCircledPicker.stop();
-        mAlarmSet = false;
+        setmAlarmSet(false);
     }
 
-    private void setAlarm (long ms){
-        PendingIntent pi = PendingIntent.getBroadcast(this, ALARM_REQUEST_CODE, new Intent("ch.dominikroos.soundslasher"), PendingIntent.FLAG_UPDATE_CURRENT);
-
-        if (Build.VERSION.SDK_INT<Build.VERSION_CODES.KITKAT) {
-            mAlarmManager.set(AlarmManager.RTC_WAKEUP, ms, pi);
-        } else {
-            mAlarmManager.setExact(AlarmManager.RTC_WAKEUP, ms, pi);
+    @Override
+    public void onClick(View view) {
+        if(mAlarmSet){
+            cancelAlarm();
+        }else{
+            setAlarm();
         }
-        mAlarmSet = true;
+
     }
 
-
-    public void stopAllAudio(View view){
-        // Request audio focus for playback
-        int result = mAudioManager.requestAudioFocus(focusChangeListener,
-                // Use the music stream.
-                AudioManager.STREAM_MUSIC,
-                // Request permanent focus.
-                AudioManager.AUDIOFOCUS_GAIN);
-
-
-        if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
-            // other app had stopped playing song now , so u can do u stuff now .
-            Snackbar.make((CoordinatorLayout)findViewById(R.id.coordinatorLayout), "Success?", Snackbar.LENGTH_SHORT).show();
+    public void setmAlarmSet(boolean mAlarmSet) {
+        this.mAlarmSet = mAlarmSet;
+        if(mAlarmSet){
+            mFloatingActionButton.setImageDrawable(ContextCompat.getDrawable(this,android.R.drawable.ic_media_pause));
+            SharedPreferences.Editor editor = mSharedPreferences.edit();
+            editor.putLong(ALARM_TIME, mAlarmTime);
+            editor.putBoolean(ALARM_SET, true);
+            editor.commit();
+        }else{
+            mFloatingActionButton.setImageDrawable(ContextCompat.getDrawable(this,android.R.drawable.ic_media_play));
+            SharedPreferences.Editor editor = mSharedPreferences.edit();
+            editor.remove(ALARM_TIME);
+            editor.putBoolean(ALARM_SET, false);
+            editor.commit();
         }
     }
 
-    private AudioManager.OnAudioFocusChangeListener focusChangeListener =
-            new AudioManager.OnAudioFocusChangeListener() {
-                public void onAudioFocusChange(int focusChange) {
-                    switch (focusChange) {
+    public class DataPair implements Comparable<DataPair>{
+        float mTime;
+        int mCounter;
 
-                        case (AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) :
-                            // Lower the volume while ducking.
-                            //mediaPlayer.setVolume(0.2f, 0.2f);
-                            break;
-                        case (AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) :
-                            //pause();
-                            break;
+        public DataPair(float mTime, int mCounter) {
+            this.mTime = mTime;
+            this.mCounter = mCounter;
+        }
 
-                        case (AudioManager.AUDIOFOCUS_LOSS) :
-                            //stop();
-                            //ComponentName component = new ComponentName(AudioPlayerActivity.this,MediaControlReceiver.class);
-                            //am.unregisterMediaButtonEventReceiver(component);
-                            break;
-
-                        case (AudioManager.AUDIOFOCUS_GAIN) :
-                            // Return the volume to normal and resume if paused.
-                            //mediaPlayer.setVolume(1f, 1f);
-                            //mediaPlayer.start();
-                            break;
-                        default: break;
-                    }
-                }
-            };
-
-    public BroadcastReceiver getBroadcastReceiver() {
-        return new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                stopAllAudio(null);
-                if(mCircledPicker != null){
-                    mCircledPicker.stop();
-                }
-                mAlarmSet = false;
-            }
-        };
+        @Override
+        public int compareTo(DataPair rhs) {
+            return rhs.mCounter - mCounter ;
+        }
     }
+
+    private ArrayList<DataPair> createDataSetFromSharedPreferences() {
+        ArrayList<DataPair> dataPairs;
+        String json = mSharedPreferences.getString(DATA_PAIRS,"null");
+
+        if(!json.equals("null")){
+            Gson gson = new Gson();
+            dataPairs = new ArrayList<>(Arrays.asList(gson.fromJson(json, DataPair[].class)));
+            Collections.sort(dataPairs);
+        }else{
+            return  new ArrayList<>();
+        }
+        return dataPairs;
+    }
+
+    private void saveDataSetToSharedPreferences(){
+        mFloatingActionButton.setImageDrawable(ContextCompat.getDrawable(this,android.R.drawable.ic_media_pause));
+        SharedPreferences.Editor editor = mSharedPreferences.edit();
+
+        Gson gson = new Gson();
+        String json = gson.toJson(mDataset);
+
+        editor.putString(DATA_PAIRS, json);
+        editor.commit();
+    }
+
 }

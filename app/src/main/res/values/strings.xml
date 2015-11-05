@@ -1,4 +1,7 @@
 <resources>
     <string name="app_name">Sound Slasher</string>
     <string name="action_settings">Settings</string>
+    <string name="message_cancle_alarm">paused sound slash</string>
+    <string name="message_start_alarm">started sound slash</string>
+    <string name="message_start_alarm_action">save</string>
 </resources>
