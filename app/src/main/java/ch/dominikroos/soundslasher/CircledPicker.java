@@ -2,6 +2,8 @@ package ch.dominikroos.soundslasher;
 
 /**
  * Created by Dominik on 09.06.2015.
+ *
+ * based on https://github.com/arcadefire/circled-picker
  */
 import android.animation.Animator;
 import android.animation.Animator.AnimatorListener;
