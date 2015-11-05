@@ -22,15 +22,16 @@ abstract class ShrinkScrollListener extends RecyclerView.OnScrollListener {
     public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
         super.onScrolled(recyclerView, dx, dy);
 
+        mRecyclerviewOffset += dy;
+        mRecyclerviewAbsoluteOffset += dy;
         clipOffset();
-        onMoved(computeHeight(),mRecyclerviewAbsoluteOffset);
-        if(lastValuesHaveSameSign(dy)) {
+        onMoved(computeHeight(), mRecyclerviewAbsoluteOffset);
+        /*if(lastValuesHaveSameSign(dy)) {
             mOffsetAccumulator += dy;
             mRecyclerviewOffset += mOffsetAccumulator;
             mOffsetAccumulator = 0;
         }
-        addLastValue(dy);
-        mRecyclerviewAbsoluteOffset += dy;
+        addLastValue(dy);*/
     }
 
     private void addLastValue(int dy) {
@@ -61,9 +62,8 @@ abstract class ShrinkScrollListener extends RecyclerView.OnScrollListener {
     }
 
     public int computeHeight() {
-        Log.i(TAG, mRecyclerviewOffset +" "+mCircledPickerHeight);
         float height = (mCircledPickerHeight*(1f - (mRecyclerviewOffset / (float) mCircledPickerHeight)));
-        Log.i(TAG,height+"");
+
         return height < mCircledPickerHeight ? (int)height : mCircledPickerHeight;
     }
 

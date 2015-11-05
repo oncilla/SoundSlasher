@@ -23,6 +23,7 @@ import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 
 import com.google.gson.Gson;
@@ -42,6 +43,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private static final String DEFAULT_VALUE = "DEFAULT_VALUE";
     private static final String TAG = "MAIN_ACTIVITY";
     private static final String DATA_PAIRS = "DATA_PAIRS";
+    private static final String OLD_PICKER_VALUE = "OLD_PICKER_VALUE";
     private AlarmManager mAlarmManager;
     private CircledPicker mCircledPicker;
     private CardView mCircledPickerCard;
@@ -87,7 +89,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         // specify an adapter (see also next example)
         mDataset = createDataSetFromSharedPreferences();
-        mAdapter = new TimeListAdapter(mDataset,this);
+        mAdapter = new TimeListAdapter(mDataset,this,mRecyclerView);
         mRecyclerView.setAdapter(mAdapter);
 
         mRecyclerView.addOnScrollListener(mOnScrollListener = new ShrinkScrollListener() {
@@ -95,10 +97,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             protected void onMoved(int height, int offset) {
                 Log.i(TAG, height + "");
                 if (isActive) {
-                    LinearLayout.LayoutParams layoutParams = (LinearLayout.LayoutParams) mCircledPickerCard.getLayoutParams();
+                    FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) mCircledPickerCard.getLayoutParams();
                     layoutParams.height = height;
                     mCircledPickerCard.setLayoutParams(layoutParams);
                     mCircledPickerCard.setCardElevation(12 * (Math.min(1, offset / (float) layoutParams.leftMargin)) + 6);
+                    mDataset.get(0).mOffset = height;
+                    mAdapter.notifyDataSetChanged();
 
                 }
             }
@@ -117,13 +121,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         mAlarmTime = mSharedPreferences.getLong(ALARM_TIME, -1);
         mAlarmSet = mSharedPreferences.getBoolean(ALARM_SET, false);
+        mOldCircularPickerValue = mSharedPreferences.getFloat(OLD_PICKER_VALUE, -1);
+        Log.i(TAG, mOldCircularPickerValue + "");
         if (mAlarmSet && mAlarmTime > System.currentTimeMillis()) {
             float timeToAlarm = (float) (mAlarmTime - System.currentTimeMillis()) / 1000;
             mCircledPicker.setValue(timeToAlarm);
             mCircledPicker.start(mAlarmTime);
             setmAlarmSet(true);
         }else if(mOldCircularPickerValue > -0.5){
-            mCircledPicker.setValue(mOldCircularPickerValue);
+            setCircledPickerValue(mOldCircularPickerValue);
             setmAlarmSet(false);
         }else{
             setmAlarmSet(false);
@@ -138,6 +144,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             mCircledPickerCardHeight = mCircledPickerCard.getHeight();
         mOnScrollListener.setmCircledPickerHeight(mCircledPickerCardHeight);
         mOnScrollListener.setIsActive(true);
+        mDataset.get(0).mOffset = mCircledPickerCardHeight ;
+        mAdapter.notifyDataSetChanged();
     }
 
     @Override
@@ -145,6 +153,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onPause();
         mCircledPicker.stop();
         mOnScrollListener.setIsActive(false);
+        mOldCircularPickerValue = mCircledPicker.getValue();
+
+        SharedPreferences.Editor editor = mSharedPreferences.edit();
+        editor.putFloat(OLD_PICKER_VALUE, mOldCircularPickerValue);
+        editor.commit();
+
         saveDataSetToSharedPreferences();
 
     }
@@ -242,9 +256,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
+    public void setCircledPickerValue(float mTime) {
+        mCircledPicker.setValue(mTime);
+        mCircledPicker.invalidate();
+    }
+
     public class DataPair implements Comparable<DataPair>{
         float mTime;
         int mCounter;
+        int mOffset = 0;
 
         public DataPair(float mTime, int mCounter) {
             this.mTime = mTime;
