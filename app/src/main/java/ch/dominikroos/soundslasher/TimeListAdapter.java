@@ -2,6 +2,7 @@ package ch.dominikroos.soundslasher;
 
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,6 +19,7 @@ import java.util.Objects;
 public class TimeListAdapter extends RecyclerView.Adapter<TimeListAdapter.ViewHolder> implements RecyclerView.OnClickListener{
     private static final int VIEW_TYPE_HEADER = 0;
     private static final int VIEW_TYPE_TIME_VIEW = 1;
+    private static final String TAG = "TimeListAdapter";
     private ArrayList<MainActivity.DataPair> mDataset;
     private MainActivity mMainActivity;
     private RecyclerView mRecyclerView;
@@ -80,8 +82,7 @@ public class TimeListAdapter extends RecyclerView.Adapter<TimeListAdapter.ViewHo
     // Replace the contents of a view (invoked by the layout manager)
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
-        // - get element from your dataset at this position
-        // - replace the contents of the view with that element
+        Log.i(TAG, "onBindView "+position);
         if(getItemViewType(position) == VIEW_TYPE_HEADER){
             RecyclerView.LayoutParams params = (RecyclerView.LayoutParams) holder.mView.getLayoutParams();
             params.height = (int)(mDataset.get(0).mOffset + 2*Util.pxFromDp(mMainActivity, 8));

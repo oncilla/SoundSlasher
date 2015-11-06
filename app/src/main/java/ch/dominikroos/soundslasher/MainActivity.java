@@ -82,6 +82,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         mAlarmManager = (AlarmManager)getSystemService(Context.ALARM_SERVICE);
 
+        mDataset = createDataSetFromSharedPreferences();
         setUpRecyclerView();
 
         mFloatingActionButton = (FloatingActionButton) findViewById(R.id.fab);
@@ -91,30 +92,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private void setUpRecyclerView() {
         mRecyclerView = (RecyclerView) findViewById(R.id.my_recycler_view);
 
-        // use this setting to improve performance if you know that changes
-        // in content do not change the layout size of the RecyclerView
         mRecyclerView.setHasFixedSize(true);
 
-        // use a linear layout manager
         mLayoutManager = new LinearLayoutManager(this);
         mRecyclerView.setLayoutManager(mLayoutManager);
 
-        // specify an adapter (see also next example)
-        mDataset = createDataSetFromSharedPreferences();
         mAdapter = new TimeListAdapter(mDataset,this,mRecyclerView);
         mRecyclerView.setAdapter(mAdapter);
 
         mRecyclerView.addOnScrollListener(mOnScrollListener = new ShrinkScrollListener() {
             @Override
             protected void onMoved(int height, int offset) {
-                Log.i(TAG, height + "");
                 if (isActive) {
-                    RelativeLayout.LayoutParams layoutParams = (RelativeLayout.LayoutParams) mCircledPickerCard.getLayoutParams();
-                    layoutParams.height = height;
-                    mCircledPickerCard.setLayoutParams(layoutParams);
-                    mCircledPickerCard.setCardElevation(12 * (Math.min(1, offset / (float) layoutParams.leftMargin)) + 6);
-                    mDataset.get(0).mOffset = height;
-                    mAdapter.notifyDataSetChanged();
+                    setCircledPickerHeight(height);
+                    float ratio = (offset)/(float)((RelativeLayout.LayoutParams)mCircledPickerCard.getLayoutParams()).leftMargin;
+                    ratio = (ratio<0)?0:ratio;
+                    mCircledPickerCard.setCardElevation(48 * Math.min(1,ratio)+ 6);
                 }
                 mRelativeLayout.bringChildToFront(mCircledPickerCard);
                 mRelativeLayout.invalidate();
@@ -139,14 +132,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
 
+
     @Override
     protected void onResume() {
         super.onResume();
+
+        if(mCircledPickerCardHeight != -1){
+            setCircledPickerHeight(mCircledPickerCardHeight);
+            mLayoutManager.scrollToPosition(0);
+            mOnScrollListener.resetOffset();
+        }
 
         mAlarmTime = mSharedPreferences.getLong(ALARM_TIME, -1);
         mAlarmSet = mSharedPreferences.getBoolean(ALARM_SET, false);
         mOldCircularPickerValue = mSharedPreferences.getFloat(OLD_PICKER_VALUE, -1);
         Log.i(TAG, mOldCircularPickerValue + "");
+
         if (mAlarmSet && mAlarmTime > System.currentTimeMillis()) {
             float timeToAlarm = (float) (mAlarmTime - System.currentTimeMillis()) / 1000;
             mCircledPicker.setValue(timeToAlarm);
@@ -164,6 +165,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
+        Log.i(TAG, "onWindowFocusChanged was called");
         if(mCircledPickerCardHeight == -1)
             mCircledPickerCardHeight = mCircledPickerCard.getHeight();
         mOnScrollListener.setmCircledPickerHeight(mCircledPickerCardHeight);
@@ -182,9 +184,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         SharedPreferences.Editor editor = mSharedPreferences.edit();
         editor.putFloat(OLD_PICKER_VALUE, mOldCircularPickerValue);
         editor.commit();
-
-        saveDataSetToSharedPreferences();
-
     }
 
     @Override
@@ -239,10 +238,41 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private boolean increaseDataSetCounter(float value) {
         for(int i = 0; i < mDataset.size(); i++){
             if(mDataset.get(i).mTime == value){
+                int j = i-1;
+                int k = i;
+
+                DataPair temp = mDataset.get(i);
+                temp.mCounter++;
+                while (j > 0 && mDataset.get(j).mCounter <= temp.mCounter){
+                    mDataset.set(k,mDataset.get(j));
+                    mDataset.set(j,temp);
+                    mAdapter.notifyItemMoved(j,k);
+                    j--;
+                    k--;
+                }
+                saveDataSetToSharedPreferences();
+                return true;
+
+
+                /*float[] times = new float[mDataset.size()];
+                for(int j = 0; j < mDataset.size(); j++){
+                    times[j] = mDataset.get(j).mTime;
+                }
                 mDataset.get(i).mCounter++;
                 sortDataset(mDataset);
-                mAdapter.notifyDataSetChanged();
-                return true;
+                for(int j = 0; j < mDataset.size(); j++){
+                    if(mDataset.get(j).mTime != times[j]){
+                        for(int k = j+1; k < mDataset.size(); k++){
+                            if(times[k] != mDataset.get(k).mTime){
+                            mAdapter.notifyItemRangeChanged(j,k-j);
+                            saveDataSetToSharedPreferences();
+                            return true;
+                            }
+                        }
+                    }
+                }
+                saveDataSetToSharedPreferences();
+                return true;*/
             }
         }
         return false;
@@ -289,6 +319,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
+
+    private void setCircledPickerHeight(int height) {
+
+        RelativeLayout.LayoutParams layoutParams = (RelativeLayout.LayoutParams) mCircledPickerCard.getLayoutParams();
+        layoutParams.height = height;
+        mCircledPickerCard.setLayoutParams(layoutParams);
+    }
+
     public class DataPair implements Comparable<DataPair>{
         float mTime;
         int mCounter;
@@ -331,7 +369,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void saveDataSetToSharedPreferences(){
-        mFloatingActionButton.setImageDrawable(ContextCompat.getDrawable(this,android.R.drawable.ic_media_pause));
         SharedPreferences.Editor editor = mSharedPreferences.edit();
 
         Gson gson = new Gson();
@@ -343,13 +380,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
 
     private void removeElementFromDataset(int position) {
+        if(position <= 0)
+            return;
         mDataset.remove(position);
         mAdapter.notifyItemRemoved(position);
+        saveDataSetToSharedPreferences();
     }
 
     private void addElementToDataset(DataPair dataPair) {
         mDataset.add(dataPair);
         mAdapter.notifyItemInserted(mDataset.size()-1);
+        saveDataSetToSharedPreferences();
     }
 
 
