@@ -19,6 +19,7 @@ import android.graphics.Path;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.nfc.Tag;
 import android.os.Build;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -59,8 +60,16 @@ public class CircledPicker extends View implements Runnable {
     private volatile boolean isInterrupted;
     private Thread mUpdaterThread;
     private long mAlarmTime;
+    private TimerStopListener mTimerStopListener;
 
+    public interface TimerStopListener{
+        void onTimerStop();
+    }
 
+    public void setOnTimerStopListener(TimerStopListener TimerStopListener){
+        mTimerStopListener = TimerStopListener;
+    }
+    
     public void start(long alarmTime){
         mAlarmTime = alarmTime;
         isInterrupted = false;
@@ -73,6 +82,7 @@ public class CircledPicker extends View implements Runnable {
 
     public void stop(){
         isInterrupted = true;
+        mTimerStopListener.onTimerStop();
     }
 
 
@@ -80,17 +90,21 @@ public class CircledPicker extends View implements Runnable {
     @Override
     public void run() {
         try {
-            while (!isInterrupted && mCurrentValue >= 0) {
+            while (!isInterrupted) {
                 ((Activity)getContext()).runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        float value = (float)((mAlarmTime - System.currentTimeMillis())/1000);
+                        float value = (float) ((mAlarmTime - System.currentTimeMillis()) / 1000);
                         setValue(value);
                         invalidate();
                         Log.i(TAG, "Thread is still running");
                     }
                 });
 
+                if(mAlarmTime < System.currentTimeMillis()){
+                    stop();
+
+                }
                 Thread.sleep(100);
             }
         } catch (InterruptedException e) {

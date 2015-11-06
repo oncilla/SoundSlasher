@@ -36,7 +36,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+import static ch.dominikroos.soundslasher.CircledPicker.*;
+
+
+public class MainActivity extends AppCompatActivity implements View.OnClickListener, TimerStopListener {
 
 
     private static final int ALARM_REQUEST_CODE = 0;
@@ -78,6 +81,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mCircledPicker = (CircledPicker)findViewById(R.id.circled_picker);
         mCircledPickerCard = (CardView)findViewById(R.id.card_view);
         mInitialCardSize = mCircledPickerCard.getHeight();
+        mCircledPicker.setOnTimerStopListener(this);
         mRelativeLayout = (RelativeLayout)findViewById(R.id.content_view_relative_layout);
 
         mAlarmManager = (AlarmManager)getSystemService(Context.ALARM_SERVICE);
@@ -325,6 +329,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         RelativeLayout.LayoutParams layoutParams = (RelativeLayout.LayoutParams) mCircledPickerCard.getLayoutParams();
         layoutParams.height = height;
         mCircledPickerCard.setLayoutParams(layoutParams);
+    }
+
+    @Override
+    public void onTimerStop() {
+        Log.i(TAG,"OnTimerStop");
+        setmAlarmSet(false);
     }
 
     public class DataPair implements Comparable<DataPair>{
