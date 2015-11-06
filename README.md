@@ -14,11 +14,11 @@ This project is under development.
 Future features:
 
 <ul>
-<li>More pleasant remove animation</li>
-<li>Snackbar to undo remove</li>
+<li>More advanced remove action, including an undo option</li>
 <li>Redesign TimeCard layout</li>
 <li>Notification about active timer</li>
 <li>Redesign landscape mode</li>
 <li>Customization</li>
+<li>Documentation</li>
 <li>and more</li>
 </ul>
