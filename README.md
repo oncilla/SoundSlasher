@@ -7,10 +7,14 @@ Stored times can be removed by swiping.
 <div>
 <img src="https://github.com/Oncilla/SoundSlasher/blob/master/resize.gif?raw=true" width="180">
 <img src="https://github.com/Oncilla/SoundSlasher/blob/master/set_timer.gif?raw=true" width="180">
+</div>
+</br>
+<div>
 <img src="https://github.com/Oncilla/SoundSlasher/blob/master/remove.gif?raw=true" width="180">
 <img src="https://github.com/Oncilla/SoundSlasher/blob/master/change_priority.gif?raw=true" width="180">
 </div>
-This project is under development.
+
+This project is under development.</br>
 Future features:
 
 <ul>
