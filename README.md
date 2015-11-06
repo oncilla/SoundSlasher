@@ -4,16 +4,21 @@ Sound Slasher is an application to turn off any media played on your android dev
 It features an circular picker to choose the time and stores it if requested.
 Stored times can be removed by swiping.
 
-<img src="https://github.com/Oncilla/SoundSlasher/blob/master/animation.gif?raw=true" width="480">
-
+<div>
+<img src="https://github.com/Oncilla/SoundSlasher/blob/master/resize.gif?raw=true" width="180">
+<img src="https://github.com/Oncilla/SoundSlasher/blob/master/set_timer.gif?raw=true" width="180">
+<img src="https://github.com/Oncilla/SoundSlasher/blob/master/remove.gif?raw=true" width="180">
+<img src="https://github.com/Oncilla/SoundSlasher/blob/master/change_priority.gif?raw=true" width="180">
+</div>
 This project is under development.
 Future features:
 
 <ul>
 <li>More pleasant remove animation</li>
 <li>Snackbar to undo remove</li>
-<li>Add animation</li>
 <li>Redesign TimeCard layout</li>
-<li>Notification</li>
+<li>Notification about active timer</li>
+<li>Redesign landscape mode</li>
+<li>Customization</li>
 <li>and more</li>
 </ul>
