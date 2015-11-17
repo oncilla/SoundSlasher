@@ -335,7 +335,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void onTimerStop(boolean timerCancled) {
         Log.i(TAG, "OnTimerStop");
         if(timerCancled)
-            setmAlarmSet(false);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    setmAlarmSet(false);
+                }
+            });
     }
 
     public class DataPair implements Comparable<DataPair>{
