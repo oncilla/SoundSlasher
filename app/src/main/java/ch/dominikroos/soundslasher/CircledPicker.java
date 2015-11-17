@@ -63,7 +63,7 @@ public class CircledPicker extends View implements Runnable {
     private TimerStopListener mTimerStopListener;
 
     public interface TimerStopListener{
-        void onTimerStop();
+        void onTimerStop(boolean isSPaused);
     }
 
     public void setOnTimerStopListener(TimerStopListener TimerStopListener){
@@ -80,9 +80,9 @@ public class CircledPicker extends View implements Runnable {
 
     }
 
-    public void stop(){
+    public void stop(boolean timerRemoved){
         isInterrupted = true;
-        mTimerStopListener.onTimerStop();
+        mTimerStopListener.onTimerStop(timerRemoved);
     }
 
 
@@ -102,7 +102,7 @@ public class CircledPicker extends View implements Runnable {
                 });
 
                 if(mAlarmTime < System.currentTimeMillis()){
-                    stop();
+                    stop(true);
 
                 }
                 Thread.sleep(100);

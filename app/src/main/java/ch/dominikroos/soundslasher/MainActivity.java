@@ -181,7 +181,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     public void onPause(){
         super.onPause();
-        mCircledPicker.stop();
+        mCircledPicker.stop(false);
         mOnScrollListener.setIsActive(false);
         mOldCircularPickerValue = mCircledPicker.getValue();
 
@@ -285,7 +285,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void cancelAlarm(){
         PendingIntent service = PendingIntent.getService(this, ALARM_REQUEST_CODE, new Intent(this, SlashSoundService.class), PendingIntent.FLAG_UPDATE_CURRENT);
         mAlarmManager.cancel(service);
-        mCircledPicker.stop();
+        mCircledPicker.stop(true);
         setmAlarmSet(false);
     }
 
@@ -332,9 +332,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     @Override
-    public void onTimerStop() {
-        Log.i(TAG,"OnTimerStop");
-        setmAlarmSet(false);
+    public void onTimerStop(boolean timerCancled) {
+        Log.i(TAG, "OnTimerStop");
+        if(timerCancled)
+            setmAlarmSet(false);
     }
 
     public class DataPair implements Comparable<DataPair>{
@@ -393,7 +394,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if(position <= 0)
             return;
         mDataset.remove(position);
-        mAdapter.notifyItemRemoved(position);
+
+        for(int i = position; i < mDataset.size(); i++){
+            mAdapter.notifyItemMoved(i,i+1);
+        }
+
+        mAdapter.notifyItemRemoved(mDataset.size());
         saveDataSetToSharedPreferences();
     }
 
