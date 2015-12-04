@@ -35,6 +35,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedList;
+import java.util.Queue;
 
 import static ch.dominikroos.soundslasher.CircledPicker.*;
 
@@ -58,7 +60,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private SharedPreferences mSharedPreferences;
 
     private RecyclerView mRecyclerView;
-    private LinearLayoutManager mLayoutManager;
+    private CustomLinearLayoutManager mLayoutManager;
     private TimeListAdapter mAdapter;
     private ArrayList<DataPair> mDataset;
 
@@ -98,20 +100,26 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         mRecyclerView.setHasFixedSize(true);
 
-        mLayoutManager = new LinearLayoutManager(this);
+        mLayoutManager = new CustomLinearLayoutManager(this);
         mRecyclerView.setLayoutManager(mLayoutManager);
 
         mAdapter = new TimeListAdapter(mDataset,this,mRecyclerView);
         mRecyclerView.setAdapter(mAdapter);
 
         mRecyclerView.addOnScrollListener(mOnScrollListener = new ShrinkScrollListener() {
+
             @Override
-            protected void onMoved(int height, int offset) {
+            protected void onMoved(int height) {
                 if (isActive) {
-                    setCircledPickerHeight(height);
-                    float ratio = (offset)/(float)((RelativeLayout.LayoutParams)mCircledPickerCard.getLayoutParams()).leftMargin;
+                   /* float offset = mLayoutManager.getChildAt(1).getY() - (mCircledPickerCard.getY() + mCircledPickerCard.getHeight());
+                    Log.d(TAG, "onMoved: offset: " + offset + " margin: " + ((RelativeLayout.LayoutParams) mCircledPickerCard.getLayoutParams()).leftMargin);
+                    float ratio = (offset/2)/(float)((RelativeLayout.LayoutParams)mCircledPickerCard.getLayoutParams()).leftMargin;
                     ratio = (ratio<0)?0:ratio;
-                    mCircledPickerCard.setCardElevation(48 * Math.min(1,ratio)+ 6);
+                    Log.d(TAG,"onMoved: ratio: "+ratio);
+
+                    mCircledPickerCard.setCardElevation(ratio>0.5?6:48);*/
+                    setCircledPickerHeight(height);
+
                 }
                 mRelativeLayout.bringChildToFront(mCircledPickerCard);
                 mRelativeLayout.invalidate();
@@ -150,7 +158,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mAlarmTime = mSharedPreferences.getLong(ALARM_TIME, -1);
         mAlarmSet = mSharedPreferences.getBoolean(ALARM_SET, false);
         mOldCircularPickerValue = mSharedPreferences.getFloat(OLD_PICKER_VALUE, -1);
-        Log.i(TAG, mOldCircularPickerValue + "");
+        Log.i(TAG, "mAlarmTime: "+mAlarmTime+"\nmAlarmSet: "+mAlarmSet+"\nmOldCircluarPickerValue: "+mOldCircularPickerValue + "");
 
         if (mAlarmSet && mAlarmTime > System.currentTimeMillis()) {
             float timeToAlarm = (float) (mAlarmTime - System.currentTimeMillis()) / 1000;
@@ -395,17 +403,30 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
 
-    private void removeElementFromDataset(int position) {
+    private void removeElementFromDataset(final int position) {
         if(position <= 0)
             return;
-        mDataset.remove(position);
 
-        for(int i = position; i < mDataset.size(); i++){
-            mAdapter.notifyItemMoved(i,i+1);
-        }
+        int visiblePosition = mLayoutManager.findFirstVisibleItemPosition();
+        View v;
+        int top = ((v = mLayoutManager.getChildAt(0)) == null)?0:(int)v.getY();
+        final DataPair element = mDataset.remove(position);
+        mAdapter.notifyItemRemoved(position);
+        mLayoutManager.scrollToPositionWithOffset(visiblePosition,top);
 
-        mAdapter.notifyItemRemoved(mDataset.size());
+        Log.d(TAG, "First position" + mRecyclerView.getChildAt(1).getY() + "");
         saveDataSetToSharedPreferences();
+
+        Snackbar.make(mCircledPickerCard, getResources().getString(R.string.message_remove_element), Snackbar.LENGTH_LONG).
+                setAction(getResources().getString(R.string.message_undo_action), new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        mDataset.add(position, element);
+                        mAdapter.notifyItemInserted(position);
+                        saveDataSetToSharedPreferences();
+                    }
+                })
+                .show();
     }
 
     private void addElementToDataset(DataPair dataPair) {

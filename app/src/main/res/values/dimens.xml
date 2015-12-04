@@ -6,4 +6,5 @@
     <dimen name="time_text_size">50sp</dimen>
     <dimen name="card_margin">8dp</dimen>
     <dimen name="card_padding_left">16dp</dimen>
+    <dimen name="circled_picker_card_elevation">6dp</dimen>
 </resources>

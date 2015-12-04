@@ -26,7 +26,8 @@ abstract class ShrinkScrollListener extends RecyclerView.OnScrollListener {
         mRecyclerViewCardAbsolutOffset += dy;
         clipOffset();
         Log.i(TAG,mCircledPickerHeight + " " + mRecyclerViewOffset + " " + mRecyclerViewCardAbsolutOffset);
-        onMoved(computeHeight(), mRecyclerViewCardAbsolutOffset - mRecyclerViewOffset);
+       // onMoved(computeHeight(), mRecyclerViewCardAbsolutOffset - mRecyclerViewOffset);
+        onMoved(computeHeight());
         /*if(lastValuesHaveSameSign(dy)) {
             mOffsetAccumulator += dy;
             mRecyclerViewOffset += mOffsetAccumulator;
@@ -52,7 +53,9 @@ abstract class ShrinkScrollListener extends RecyclerView.OnScrollListener {
         return true;
     }
 
-    protected abstract void onMoved(int height, int offset);
+   // protected abstract void onMoved(int height, int offset);
+    protected abstract void onMoved(int height);
+
 
     private boolean clipOffset() {
         if(mRecyclerViewOffset < 0){
