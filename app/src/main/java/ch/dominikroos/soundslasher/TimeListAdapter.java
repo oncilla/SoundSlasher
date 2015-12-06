@@ -1,11 +1,14 @@
 package ch.dominikroos.soundslasher;
 
+import android.content.Context;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.TextView;
 
 import org.w3c.dom.Text;
@@ -21,7 +24,6 @@ public class TimeListAdapter extends RecyclerView.Adapter<TimeListAdapter.ViewHo
     private static final int VIEW_TYPE_TIME_VIEW = 1;
     private static final int VIEW_TYPE_ADDITIONAL_VIEW = 2;
     private static final String TAG = "TimeListAdapter";
-    private static final int ADDITIONAL_VIEW_COUNT = 8;
     private ArrayList<MainActivity.DataPair> mDataset;
     private MainActivity mMainActivity;
     private RecyclerView mRecyclerView;
@@ -59,7 +61,7 @@ public class TimeListAdapter extends RecyclerView.Adapter<TimeListAdapter.ViewHo
     public int getItemViewType(int position) {
         if(position == 0){
             return VIEW_TYPE_HEADER;
-        }else if(position <= mDataset.size()){
+        }else if(position < mDataset.size()){
             return VIEW_TYPE_TIME_VIEW;
         }else{
             return VIEW_TYPE_ADDITIONAL_VIEW;
@@ -81,9 +83,8 @@ public class TimeListAdapter extends RecyclerView.Adapter<TimeListAdapter.ViewHo
             v.setOnClickListener(this);
             return vh;
         }else{
-            View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.time_card, parent, false);
-            ViewHolder vh = new ViewHolder((CardView)v);
-            v.setVisibility(View.INVISIBLE);
+            View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.time_list_header, parent, false);
+            ViewHolder vh = new ViewHolder(v);
             return vh;
         }
     }
@@ -96,9 +97,18 @@ public class TimeListAdapter extends RecyclerView.Adapter<TimeListAdapter.ViewHo
             RecyclerView.LayoutParams params = (RecyclerView.LayoutParams) holder.mView.getLayoutParams();
             params.height = (int)(mDataset.get(0).mOffset + 2*Util.pxFromDp(mMainActivity, 8));
             holder.mView.setLayoutParams(params);
+
+            Log.d(TAG, "Bound header with height " + params.height);
         }else if(getItemViewType(position)==VIEW_TYPE_TIME_VIEW){
             holder.mTextView.setText(CircledPickerUtils.getMinuesAndSecondsString(mDataset.get(position).mTime));
             holder.mTextView.invalidate();
+        }else{
+            RecyclerView.LayoutParams params = (RecyclerView.LayoutParams) holder.mView.getLayoutParams();
+            DisplayMetrics metrics = new DisplayMetrics();
+            ((WindowManager) mMainActivity.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getMetrics(metrics);
+            params.height = metrics.heightPixels>>1;
+            holder.mView.setLayoutParams(params);
+            holder.mView.setVisibility(View.INVISIBLE);
         }
     }
 
@@ -106,7 +116,7 @@ public class TimeListAdapter extends RecyclerView.Adapter<TimeListAdapter.ViewHo
     // Return the size of your dataset (invoked by the layout manager)
     @Override
     public int getItemCount() {
-        return mDataset.size();
+        return mDataset.size() + 1;
     }
 
     @Override

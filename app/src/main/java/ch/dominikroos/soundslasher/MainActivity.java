@@ -123,8 +123,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     mVisiblePosition = mLayoutManager.findFirstVisibleItemPosition();
                     mVisiblePosition = mVisiblePosition==0?1:mVisiblePosition;
                     View v;
-                    mTop = ((v = mLayoutManager.getChildAt(mVisiblePosition)) == null)?0:(int)v.getY();
-                    Log.i(TAG, "Position: " + mVisiblePosition + "\nTop: " + mTop);
+                    mTop = ((v = mLayoutManager.getChildAt(mVisiblePosition)) == null)?0:(int)(v.getY()-mRecyclerView.getY());
                     setCircledPickerHeight(height);
 
                 }
@@ -222,7 +221,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
-            mLayoutManager.scrollToPositionWithOffset(mVisiblePosition, mTop);
             return true;
         }
 
@@ -249,7 +247,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         setAction(getResources().getString(R.string.message_start_alarm_action), new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
-                                addElementToDataset(new DataPair(value,1));
+                                addElementToDataset(new DataPair(value, 1));
                                 Log.i(TAG, value + "");
                             }
                         })
@@ -421,7 +419,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mAdapter.notifyItemRemoved(position);
         //mLayoutManager.scrollToPositionWithOffset(visiblePosition, top);
 
-        Log.d(TAG, "Visible: " + mVisiblePosition + "\nTop: " + mTop);
+        //Log.d(TAG, "Visible: " + mVisiblePosition + "\nTop: " + mTop);
         saveDataSetToSharedPreferences();
 
         Snackbar.make(mCircledPickerCard, getResources().getString(R.string.message_remove_element), Snackbar.LENGTH_LONG).
@@ -430,6 +428,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     public void onClick(View v) {
                         mDataset.add(position, element);
                         mAdapter.notifyItemInserted(position);
+                        mLayoutManager.scrollToPositionWithOffset(mVisiblePosition,mTop);
                         saveDataSetToSharedPreferences();
                     }
                 })

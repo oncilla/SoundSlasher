@@ -2,8 +2,8 @@
     <string name="app_name">Sound Slasher</string>
     <string name="action_settings">Settings</string>
     <string name="message_cancle_alarm">paused sound slash</string>
-    <string name="message_start_alarm">new slash time detected</string>
+    <string name="message_start_alarm">New slash time detected</string>
     <string name="message_start_alarm_action">add</string>
     <string name="message_undo_action">undo</string>
-    <string name="message_remove_element">element removed</string>
+    <string name="message_remove_element">Slash time removed</string>
 </resources>

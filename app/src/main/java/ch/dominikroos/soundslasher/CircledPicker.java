@@ -97,7 +97,7 @@ public class CircledPicker extends View implements Runnable {
                         float value = (float) ((mAlarmTime - System.currentTimeMillis()) / 1000);
                         setValue(value);
                         invalidate();
-                        Log.i(TAG, "Thread is still running");
+                      //  Log.i(TAG, "Thread is still running");
                     }
                 });
 
