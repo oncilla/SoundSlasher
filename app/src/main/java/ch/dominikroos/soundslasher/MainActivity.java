@@ -70,6 +70,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private int mCircledPickerCardHeight = -1;
     private float mOldCircularPickerValue = -1;
     private RelativeLayout mRelativeLayout;
+    private int mVisiblePosition;
+    private int mTop;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -118,6 +120,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     Log.d(TAG,"onMoved: ratio: "+ratio);
 
                     mCircledPickerCard.setCardElevation(ratio>0.5?6:48);*/
+                    mVisiblePosition = mLayoutManager.findFirstVisibleItemPosition();
+                    mVisiblePosition = mVisiblePosition==0?1:mVisiblePosition;
+                    View v;
+                    mTop = ((v = mLayoutManager.getChildAt(mVisiblePosition)) == null)?0:(int)v.getY();
+                    Log.i(TAG, "Position: " + mVisiblePosition + "\nTop: " + mTop);
                     setCircledPickerHeight(height);
 
                 }
@@ -134,8 +141,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 return false;
             }
 
+
+
             @Override
-            public void onSwiped(RecyclerView.ViewHolder viewHolder, int swipeDir) {
+            public void onSwiped(RecyclerView.ViewHolder viewHolder, int swipeDir){
                 removeElementFromDataset(mRecyclerView.getChildAdapterPosition(((TimeListAdapter.ViewHolder) viewHolder).mCardView));
             }
         };
@@ -213,6 +222,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
+            mLayoutManager.scrollToPositionWithOffset(mVisiblePosition, mTop);
             return true;
         }
 
@@ -407,14 +417,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if(position <= 0)
             return;
 
-        int visiblePosition = mLayoutManager.findFirstVisibleItemPosition();
-        View v;
-        int top = ((v = mLayoutManager.getChildAt(0)) == null)?0:(int)v.getY();
         final DataPair element = mDataset.remove(position);
         mAdapter.notifyItemRemoved(position);
-        mLayoutManager.scrollToPositionWithOffset(visiblePosition,top);
+        //mLayoutManager.scrollToPositionWithOffset(visiblePosition, top);
 
-        Log.d(TAG, "First position" + mRecyclerView.getChildAt(1).getY() + "");
+        Log.d(TAG, "Visible: " + mVisiblePosition + "\nTop: " + mTop);
         saveDataSetToSharedPreferences();
 
         Snackbar.make(mCircledPickerCard, getResources().getString(R.string.message_remove_element), Snackbar.LENGTH_LONG).

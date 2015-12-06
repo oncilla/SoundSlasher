@@ -19,7 +19,9 @@ import java.util.Objects;
 public class TimeListAdapter extends RecyclerView.Adapter<TimeListAdapter.ViewHolder> implements RecyclerView.OnClickListener{
     private static final int VIEW_TYPE_HEADER = 0;
     private static final int VIEW_TYPE_TIME_VIEW = 1;
+    private static final int VIEW_TYPE_ADDITIONAL_VIEW = 2;
     private static final String TAG = "TimeListAdapter";
+    private static final int ADDITIONAL_VIEW_COUNT = 8;
     private ArrayList<MainActivity.DataPair> mDataset;
     private MainActivity mMainActivity;
     private RecyclerView mRecyclerView;
@@ -57,8 +59,10 @@ public class TimeListAdapter extends RecyclerView.Adapter<TimeListAdapter.ViewHo
     public int getItemViewType(int position) {
         if(position == 0){
             return VIEW_TYPE_HEADER;
-        }else{
+        }else if(position <= mDataset.size()){
             return VIEW_TYPE_TIME_VIEW;
+        }else{
+            return VIEW_TYPE_ADDITIONAL_VIEW;
         }
     }
 
@@ -71,10 +75,15 @@ public class TimeListAdapter extends RecyclerView.Adapter<TimeListAdapter.ViewHo
             View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.time_list_header, parent, false);
             ViewHolder vh = new ViewHolder(v);
             return vh;
-        }else{
+        }else if(viewType == VIEW_TYPE_TIME_VIEW){
             View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.time_card, parent, false);
             ViewHolder vh = new ViewHolder((CardView)v);
             v.setOnClickListener(this);
+            return vh;
+        }else{
+            View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.time_card, parent, false);
+            ViewHolder vh = new ViewHolder((CardView)v);
+            v.setVisibility(View.INVISIBLE);
             return vh;
         }
     }
